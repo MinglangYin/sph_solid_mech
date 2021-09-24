@@ -39,26 +39,31 @@ lambda_2 = get_lambda(E2, nu2)
 print(mu1, lambda_1)
 print(mu2, lambda_2)
 
-mu = Expression('x[1] <= 0.0 + tol ? mu_1 : mu_2', degree=1, tol=tol, mu_1=mu1, mu_2=mu2)
-lambda_ = Expression('x[1] <= 0.0 + tol ? lmd_1 : lmd_2', degree=1, tol=tol, lmd_1=lambda_1, lmd_2=lambda_2)
+mu = Expression('x[1] < 0.5 + tol ? mu_1 : mu_2', degree=1, tol=tol, mu_1=mu1, mu_2=mu2)
+lambda_ = Expression('x[1] < 0.5 + tol ? lmd_1 : lmd_2', degree=1, tol=tol, lmd_1=lambda_1, lmd_2=lambda_2)
 
 x_plot = np.array([0.0, 1.0])
 
 ########## FEM ##########
 ## mesh
-mesh = RectangleMesh(Point(-1.0, -1.0), Point(1.0, 1.0), 51, 51)
+# mesh = RectangleMesh(Point(-1.0, -1.0), Point(1.0, 1.0), 51, 51, CellType.Type.quadrilateral)
+# mesh = RectangleMesh.create([Point(-1.0, -1.0), Point(1.0, 1.0)],[51, 51],CellType.Type.quadrilateral)
+mesh = UnitSquareMesh(21, 21, "right/left")
+# plot(mesh)
+# plt.savefig("mesh.png")
+# exit()
 mesh_coord = mesh.coordinates()
 
 ## Space and Boundary
-W = TensorFunctionSpace(mesh, "CG", 1)
-V = VectorFunctionSpace(mesh, "CG", 1)
+W = TensorFunctionSpace(mesh, "CG", 2)
+V = VectorFunctionSpace(mesh, "CG", 2)
 
-bot = CompiledSubDomain("near(x[1], side) && on_boundary", side = -1.0)
+bot = CompiledSubDomain("near(x[1], side) && on_boundary", side = 0.0)
 bot_disp = Expression(("0.0", "0.0"), degree=1)
 bc_bot = DirichletBC(V, bot_disp, bot)
 
 top = CompiledSubDomain("near(x[1], side) && on_boundary", side = 1.0)
-top_disp = Expression(("0.0","t*0.01"), t = 1, degree=1)
+top_disp = Expression(("0.0","0.010867*t"), t = 10, degree=1)
 bc_top = DirichletBC(V, top_disp, top)
 
 bcs = [bc_bot, bc_top]
@@ -80,7 +85,7 @@ u = Function(V)
 
 u_his = []
 # Solve variational problem
-for i in range(0, 20):
+for i in range(0, 11):
     # solve
     top_disp.t = i
     solve(a == L, u, bcs)
